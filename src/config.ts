@@ -88,6 +88,22 @@ export function assertBalances(
   };
 }
 
+export function assertEqual(
+  values: string[],
+  errorMessage: string,
+): (argv: any) => Promise<void> {
+  return async (argv: any) => {
+    if (values.length > 1) {
+      const value = values[0];
+      for (let i = 0; i < values.length; i++) {
+        if (values[i] !== value) {
+          throw new Error(`${errorMessage}`);
+        }
+      }
+    }
+  };
+}
+
 export function coerceAddressToBytes32(value: string): string {
   if (ethers.utils.isHexString(value)) {
     const length = ethers.utils.hexDataLength(value);

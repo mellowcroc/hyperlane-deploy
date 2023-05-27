@@ -10,6 +10,7 @@ type WarpBaseToken = {
 
 export interface WarpNativeTokenConfig extends WarpBaseToken {
   type: TokenType.native;
+  address: string;
 }
 
 export interface WarpCollateralTokenConfig extends WarpBaseToken {
@@ -31,6 +32,11 @@ export type WarpBaseTokenConfig =
 export interface WarpRouteConfig {
   base: WarpBaseTokenConfig;
   synthetics: WarpSyntheticTokenConfig[];
+}
+
+export interface WarpRouteMultiCollateralConfig {
+  bases: WarpBaseTokenConfig[];
+  synthetic: WarpSyntheticTokenConfig;
 }
 
 // Zod schema for Warp Route config validation validation
@@ -60,8 +66,40 @@ export const WarpTokenConfigSchema = z.object({
     .nonempty(),
 });
 
+export const WarpTokenMultiCollateralConfigSchema = z.object({
+  bases: z
+    .array(
+      z.object({
+        type: z.literal(TokenType.native).or(z.literal(TokenType.collateral)),
+        chainName: z.string(),
+        address: z.string().optional(),
+        ...ConnectionConfigSchema,
+      }),
+    )
+    .nonempty(),
+  synthetic: z.object({
+    chainName: z.string(),
+    name: z.string().optional(),
+    symbol: z.string().optional(),
+    totalSupply: z.number().optional(),
+    ...ConnectionConfigSchema,
+  }),
+});
+
 export function validateWarpTokenConfig(data: WarpRouteConfig) {
   const result = WarpTokenConfigSchema.safeParse(data);
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    throw new Error(
+      `Invalid warp config: ${firstIssue.path} => ${firstIssue.message}`,
+    );
+  }
+}
+
+export function validateWarpTokenMultiCollateralConfig(
+  data: WarpRouteMultiCollateralConfig,
+) {
+  const result = WarpTokenMultiCollateralConfigSchema.safeParse(data);
   if (!result.success) {
     const firstIssue = result.error.issues[0];
     throw new Error(
@@ -73,4 +111,11 @@ export function validateWarpTokenConfig(data: WarpRouteConfig) {
 export function getWarpConfigChains(config: WarpRouteConfig) {
   const { base, synthetics } = config;
   return [base, ...synthetics].map((token) => token.chainName);
+}
+
+export function getWarpMultiCollateralConfigChains(
+  config: WarpRouteMultiCollateralConfig,
+) {
+  const { bases, synthetic } = config;
+  return [...bases, synthetic].map((token) => token.chainName);
 }
