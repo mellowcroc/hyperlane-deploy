@@ -160,8 +160,8 @@ export class WarpRouteMultiCollateralDeployer {
     const sChainName = synthetic.chainName;
     configMap[sChainName] = {
       type: TokenType.synthetic,
-      name: synthetic.name || baseTokenMetadataArray[0].name,
-      symbol: synthetic.symbol || baseTokenMetadataArray[0].symbol,
+      name: synthetic.name || baseTokenMetadataArray[0].metadata.name,
+      symbol: synthetic.symbol || baseTokenMetadataArray[0].metadata.symbol,
       totalSupply: synthetic.totalSupply || 0,
       owner,
       mailbox: synthetic.mailbox || mergedContractAddresses[sChainName].mailbox,
