@@ -128,6 +128,7 @@ run('Warp transfer test', async () => {
   const artifacts: ChainMap<WarpRouteArtifacts> = readJSONAtPath(
     './artifacts/warp-token-addresses.json',
   );
+
   const app = hypErc20FromAddressesMap(artifacts, multiProvider);
 
   const getDestinationBalance = async (): Promise<BigNumber> => {
@@ -136,7 +137,10 @@ run('Warp transfer test', async () => {
         const router = app.getContracts(destination)
           .router as HypERC20Collateral;
         const tokenAddress = await router.wrappedToken();
-        const token = ERC20__factory.connect(tokenAddress, signer);
+        const token = ERC20__factory.connect(
+          tokenAddress,
+          multiProvider.getSigner(destination),
+        );
         return token.balanceOf(recipient);
       }
       case TokenType.native: {
@@ -160,13 +164,18 @@ run('Warp transfer test', async () => {
     case TokenType.collateral: {
       const router = app.getContracts(origin).router as HypERC20Collateral;
       const tokenAddress = await router.wrappedToken();
-      const token = ERC20__factory.connect(tokenAddress, signer);
+      const token = ERC20__factory.connect(
+        tokenAddress,
+        multiProvider.getSigner(origin),
+      );
       const approval = await token.allowance(
-        await signer.getAddress(),
+        await multiProvider.getSigner(origin).getAddress(),
         router.address,
       );
+
       if (approval.lt(wei)) {
-        await token.approve(router.address, wei);
+        const approveTx = await token.approve(router.address, wei);
+        await approveTx.wait();
       }
       receipt = await app.transfer(
         origin,
